@@ -1,0 +1,381 @@
+import random
+from collections import deque
+from datetime import datetime, timedelta
+from enum import Enum
+
+# Enums for medical conditions and current health status
+class Gender(Enum):
+    MALE = 'Male'
+    FEMALE = 'Female'
+
+class MedicalCondition(Enum):
+    NONE = 'None'
+    DIABETES = 'Diabetes'
+    ASTHMA = 'Asthma'
+    HYPERTENSION = 'Hypertension'
+    INFLAMMATION = "Inflammation"
+    OBESITY = "Obesity"
+    KIDNEY_DISEASE = "Kidney Disease"
+    LUNG_DISEASE = "Lung Disease"
+    CARDIOVASCULAR_DISEASE = "Cardiovascular Disease"
+    CHRONIC_RESPIRATORY_DISEASE = "Chronic Respiratory Disease"
+    CANCER = "Cancer"
+    MENTAL_HEALTH_DISORDERS = "Mental Health Disorders"
+    NEUROLOGICAL_DISORDERS = "Neurological Disorders"
+    GASTROINTESTINAL_DISORDERS = "Gastrointestinal Disorders"
+    ENDOCRINE_DISORDERS = "Endocrine Disorders"
+    SKIN_DISORDERS = "Skin Disorders"
+    MUSCULOSKELETAL_DISORDERS = "Musculoskeletal Disorders"
+    AUTOIMMUNE_DISEASES = "Autoimmune Diseases"
+
+class CurrentCondition(Enum):
+    HEALTHY = 'Healthy'
+    FLU = 'Flu'
+    BROKEN_BONE = 'Broken Bone'
+    SURGERY_RECOVERY = 'Surgery Recovery'
+    COVID19 = 'COVID-19'
+    PNEUMONIA = 'Pneumonia'
+    CANCER = 'Cancer'
+    HEART_DISEASE = 'Heart Disease'
+    STROKE = 'Stroke'
+    ARTHRITIS = 'Arthritis'
+    MIGRAINE = 'Migraine'
+    CHRONIC_PAIN = 'Chronic Pain'
+    ANEMIA = 'Anemia'
+
+# Entity Classes
+class Patient:
+    def __init__(self, patient_id, name, age, gender, medical_history, current_condition, admission_date=None):
+        self.patient_id = patient_id
+        self.name = name
+        self.age = age
+        self.gender = gender
+        self.medical_history = medical_history
+        self.current_condition = current_condition
+        self.admission_date = admission_date if admission_date else datetime.now()
+
+class Doctor:
+    def __init__(self, doctor_id, name, specialization):
+        self.doctor_id = doctor_id
+        self.name = name
+        self.specialization = specialization
+
+class Prescription:
+    def __init__(self, prescription_id, patient_id, doctor_id, medication, dosage):
+        self.prescription_id = prescription_id
+        self.patient_id = patient_id
+        self.doctor_id = doctor_id
+        self.medication = medication
+        self.dosage = dosage
+
+# Enum-like structure for doctor specializations
+DOCTOR_SPECIALTIES = {
+    1: 'General',
+    2: 'Pediatrician',
+    3: 'Cardiologist',
+    4: 'Neurologist',
+    5: 'Emergency Medicine',
+    6: 'Orthopedic Surgeon',
+    7: 'Dermatologist',
+    8: 'Gastroenterologist',
+    9: 'Oncologist',
+    10: 'Endocrinologist',
+    11: 'Gynecologist'
+}
+
+# System Management
+class HospitalManagementSystem:
+    def __init__(self):
+        self.patients = {}
+        self.doctors = {}
+        self.prescriptions = []
+        self.appointment_queue = deque()
+        for spec_num, spec_name in DOCTOR_SPECIALTIES.items():
+            self.add_doctor(f"Doctor{spec_num}", spec_name)
+
+    def add_doctor(self, name, specialization):
+        doctor_id = random.randint(1000, 9999)
+        while doctor_id in self.doctors:
+            doctor_id = random.randint(1000, 9999)
+        self.doctors[doctor_id] = Doctor(doctor_id, name, specialization)
+        return doctor_id
+
+    def add_patient(self, name, age, gender, medical_history, current_condition):
+        patient_id = random.randint(1, 999)
+        while patient_id in self.patients:
+            patient_id = random.randint(1, 999)
+        gender = gender.capitalize()
+        if gender in [g.value for g in Gender]:
+            gender_enum = Gender[gender.upper()]
+        else:
+            print("Invalid gender provided. Defaulting to MALE.")
+            gender_enum = Gender.MALE
+        new_patient = Patient(patient_id, name, age, gender_enum, medical_history, current_condition)
+        self.patients[patient_id] = new_patient
+        return patient_id
+
+    def generate_random_date_from_today(self, days_forward=30):
+        start_date = datetime.now()
+        random_days = random.randint(0, days_forward)
+        random_date = start_date + timedelta(days=random_days)
+        return random_date.strftime('%Y-%m-%d')
+
+    def cancel_appointment(self, patient_id):
+        for appointment in list(self.appointment_queue):
+            if appointment[0] == patient_id:
+                self.appointment_queue.remove(appointment)
+                return True
+        return False
+
+    def schedule_appointment(self, patient_id, doctor_id, days_forward=30):
+        if patient_id in self.patients and doctor_id in self.doctors:
+            appointment_date = self.generate_random_date_from_today(days_forward)
+            self.appointment_queue.append((patient_id, doctor_id, appointment_date))
+            return True, appointment_date
+        return False, None
+
+
+    def add_patients_to_consultation_queue(self, num_patients):
+            """Add a specified number of patients to the consultation queue randomly from existing patients."""
+            if num_patients > len(self.patients):
+                print("Not enough patients to add to the consultation queue.")
+                return False
+
+            # Select random patient IDs
+            selected_patient_ids = random.sample(list(self.patients.keys()), num_patients)
+
+            # Add selected patients to the appointment queue
+            for patient_id in selected_patient_ids:
+                # Assuming all consultations are with a randomly selected doctor for simplicity
+                doctor_id = random.choice(list(self.doctors.keys()))
+                appointment_date = self.generate_random_date_from_today()
+                self.appointment_queue.append((patient_id, doctor_id, appointment_date))
+
+            print(f"Added {num_patients} patients to the consultation queue.")
+            return True
+
+    def conduct_consultation(self):
+        """Conducts consultations for all patients in the queue and handles prescriptions."""
+        if not self.appointment_queue:
+            print("There are currently no patients in the queue.")
+            return
+
+        while self.appointment_queue:
+            patient_id, doctor_id, appointment_date = self.appointment_queue.popleft()
+            print(
+                f"Consultation conducted for patient ID: {patient_id} with Doctor ID: {doctor_id} on {appointment_date}."
+            )
+
+            prescribe = input(f"Do you want to issue a prescription for patient ID {patient_id}? (y/n): ")
+            if prescribe.lower() == 'y':
+                medication = input("Enter medication: ")
+                dosage = input("Enter dosage: ")
+                prescription_id = self.issue_prescription(patient_id, doctor_id, medication, dosage)
+                print(f"Prescription issued with ID: {prescription_id}")
+
+    def display_scheduled_appointments(self):
+        if not self.appointment_queue:
+            print("No scheduled appointments.")
+            return
+        print("\nScheduled Appointments:")
+        for i, (patient_id, doctor_id, date) in enumerate(self.appointment_queue, start=1):
+            patient_name = self.patients[patient_id].name
+            doctor_name = self.doctors[doctor_id].name
+            print(f"{i}. Patient {patient_name} with Doctor {doctor_name} on {date}")
+
+    def issue_prescription(self, patient_id, doctor_id, medication, dosage):
+        prescription_id = random.randint(10000, 99999)
+        new_prescription = Prescription(prescription_id, patient_id, doctor_id, medication, dosage)
+        self.prescriptions.append(new_prescription)
+        return prescription_id
+
+    def update_patient_record(self, patient_id, medical_history=None, current_condition=None):
+        if patient_id in self.patients:
+            patient = self.patients[patient_id]
+            if medical_history is not None:
+                patient.medical_history = medical_history
+            if current_condition is not None:
+                patient.current_condition = current_condition
+            return True
+        return False
+
+    def remove_patient_record(self, patient_id):
+        if patient_id in self.patients:
+            del self.patients[patient_id]
+            return True
+        return False
+
+    def binary_search_patients(self, patient_id):
+        # Assuming self.patients is a list that has been sorted by patient_id
+        left, right = 0, len(self.patients) - 1
+
+        while left <= right:
+            mid = (left + right) // 2
+            if self.patients[mid].patient_id == patient_id:
+                # Found the patient, return their data
+                patient = self.patients[mid]
+                return {
+                    "Patient ID": patient.patient_id,
+                    "Name": patient.name,
+                    "Age": patient.age,
+                    "Gender": patient.gender.value,
+                    "Medical History": patient.medical_history,
+                    "Current Condition": patient.current_condition,
+                    "Admission Date": patient.admission_date.strftime("%Y-%m-%d")
+                }
+            elif self.patients[mid].patient_id < patient_id:
+                left = mid + 1
+            else:
+                right = mid - 1
+        return None  # Patient not found
+
+    def search_patient(self, patient_id):
+        # Check if the patient ID exists in the dictionary
+        if patient_id in self.patients:
+            patient = self.patients[patient_id]
+            # Initialize appointment info to None
+            appointment_info = None
+            # Search for an appointment
+            for appointment in self.appointment_queue:
+                if appointment[0] == patient_id:
+                    doctor_id = appointment[1]
+                    appointment_date = appointment[2]
+                    doctor_name = self.doctors[doctor_id].name if doctor_id in self.doctors else "Unknown Doctor"
+                    appointment_info = f"with Doctor {doctor_name} on {appointment_date}"
+                    break  # Assuming each patient can have only one appointment in the queue
+
+            # Return patient details along with appointment info if available
+            return {
+                "Patient ID": patient.patient_id,
+                "Name": patient.name,
+                "Age": patient.age,
+                "Gender": patient.gender.value,
+                "Medical History": patient.medical_history,
+                "Current Condition": patient.current_condition,
+                "Admission Date": patient.admission_date.strftime("%Y-%m-%d"),
+                "Upcoming Appointment": appointment_info if appointment_info else "None"
+            }
+        else:
+            return None
+
+
+# User Interaction Functions
+def main_menu(hms):
+    print("Welcome to the Hospital Management System!")
+    num_patients = int(input("How many patients do you want to add initially? "))
+
+    for i in range(1, num_patients + 1):
+        name = f"Patient{i}"
+        age = random.randint(1, 100)
+        gender = random.choice([g.value for g in Gender])
+        medical_history = random.choice([m.value for m in MedicalCondition])
+        current_condition = random.choice([c.value for c in CurrentCondition])
+        hms.add_patient(name, age, gender, medical_history, current_condition)
+
+    while True:
+        print("\nHospital Management System Main Menu")
+        print("1. Add a new patient manually")
+        print("2. Schedule an appointment")
+        print("3. Issue a prescription")
+        print("4. Update patient record")
+        print("5. Remove patient record")
+        print("6. Search for a patient")
+        print("7. Display current patients")
+        print("8. Conduct a consultation")
+        print("9. Display scheduled appointments")
+        print("10. Cancel an appointment")
+        print("11. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            patient_number = len(hms.patients) + 1
+            name = f"Patient{patient_number}"
+            print(f"Adding {name}. Please enter the following details:")
+            age = int(input("Enter patient's age: "))
+            gender = input(f"Select gender ({'/'.join([g.value for g in Gender])}): ").capitalize()
+            medical_history = input(f"Select medical history ({'/'.join([m.value for m in MedicalCondition])}): ")
+            current_condition = input(f"Select current condition ({'/'.join([c.value for c in CurrentCondition])}): ")
+            patient_id = hms.add_patient(name, age, gender, medical_history, current_condition)
+            print(f"Newly added patient: ID: {patient_id}, Name: {name}, Age: {age}, Gender: {gender}, Medical History: {medical_history}, Current Condition: {current_condition}")
+
+        elif choice == "2":
+            print("Select a doctor by ID:")
+            for doctor_id, doctor in hms.doctors.items():
+                print(f"ID: {doctor_id}, Name: {doctor.name}, Specialization: {doctor.specialization}")
+            doctor_id = int(input("Enter doctor ID: "))
+            patient_id = int(input("Enter patient ID: "))
+            success, appointment_date = hms.schedule_appointment(patient_id, doctor_id)
+            if success:
+                print(f"Appointment scheduled with Doctor {hms.doctors[doctor_id].name} on {appointment_date}.")
+            else:
+                print("Unable to schedule appointment. Please check the patient and doctor IDs.")
+
+        elif choice == "3":
+            patient_id = int(input("Enter patient ID: "))
+            doctor_id = int(input("Enter doctor ID: "))
+            medication = input("Enter medication: ")
+            dosage = input("Enter dosage: ")
+            prescription_id = hms.issue_prescription(patient_id, doctor_id, medication, dosage)
+            print(f"Prescription issued with ID: {prescription_id}")
+
+        elif choice == "4":
+            patient_id = int(input("Enter patient ID to update: "))
+            medical_history = input("Update medical history or press enter to skip: ")
+            current_condition = input("Update current condition or press enter to skip: ")
+            if hms.update_patient_record(patient_id, medical_history, current_condition):
+                print("Patient record updated.")
+            else:
+                print("Patient record not found.")
+
+        elif choice == "5":
+            patient_id = int(input("Enter patient ID to remove: "))
+            if hms.remove_patient_record(patient_id):
+                print("Patient record removed.")
+            else:
+                print("Patient record not found.")
+
+        elif choice == "6":
+            patient_id = int(input("Enter patient ID to search: "))
+            patient_info = hms.search_patient(patient_id)
+            if patient_info:
+                print("\nPatient Details:")
+                for key, value in patient_info.items():
+                    print(f"{key}: {value}")
+            else:
+                print("Patient record not found.")
+
+
+        elif choice == "7":
+            print("\nCurrent Patients (sorted by ID):")
+            sorted_patient_items = sorted(hms.patients.items())  # Sorts by the dictionary keys by default
+            for i, (patient_id, patient) in enumerate(sorted_patient_items, start=1):
+                print(
+                    f"{i}: ID: {patient_id}, Name: {patient.name}, Age: {patient.age}, Gender: {patient.gender.value}, Medical History: {patient.medical_history}, Current Condition: {patient.current_condition}")
+
+
+        elif choice == "8":
+            hms.conduct_consultation()
+
+
+        elif choice == "9":
+            hms.display_scheduled_appointments()
+
+
+        elif choice == "10":  # Cancel an appointment
+            patient_id = int(input("Enter patient ID for which you want to cancel the appointment: "))
+            if hms.cancel_appointment(patient_id):
+                print("Appointment successfully cancelled.")
+            else:
+                print("Could not find an appointment for the provided patient ID.")
+
+
+        elif choice == "11":
+            print("Thank you for using the Hospital Management System. Goodbye!")
+            break
+
+        else:
+            print("Invalid choice. Please try again.")
+
+hms = HospitalManagementSystem()
+main_menu(hms)
